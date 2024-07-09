@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 import json
-from langchain import OpenAI
+from langchain_community.llms import OpenAI
 from langchain_experimental.agents import create_pandas_dataframe_agent
 
 st.set_page_config(page_title="QUERY CSV")
@@ -29,7 +29,7 @@ def ask_agent(agent, query):
            {"table": {"columns": ["column1", "column2", ...], "data": [[value1, value2, ...], [value1, value2, ...], ...]}}
 
         2. For a bar chart, respond like this:
-           {"bar": {"columns": ["A", "B", "C", ...], "data": [25, 24, 10, ...]}}
+           {"bar": {"columns": ["date"], "data": [["2023-01-01", 0.5], ["2023-01-02", 0.6], ...]}}
 
         3. If a line chart is more appropriate, your reply should look like this:
            {"line": {"columns": ["A", "B", "C", ...], "data": [25, 24, 10, ...]}}
@@ -76,10 +76,8 @@ def write_answer(response_dict: dict):
     if "bar" in response_dict:
         data = response_dict["bar"]
         try:
-            df = pd.DataFrame({col: [x[i] for x in data['data']] for i, col in enumerate(data['columns'])})
-            index_column = data['columns'][0]  # Assuming the first column can be used as the index
-            df.set_index(index_column, inplace=True)
-            st.bar_chart(df)
+            df = pd.DataFrame(data["data"], columns=data["columns"])
+            st.bar_chart(df.set_index("date"))
         except (ValueError, KeyError) as e:
             print(f"Error creating bar chart: {e}")
             st.write(f"Error creating bar chart: {e}")
@@ -87,10 +85,8 @@ def write_answer(response_dict: dict):
     if "line" in response_dict:
         data = response_dict["line"]
         try:
-            df = pd.DataFrame({col: [x[i] for x in data['data']] for i, col in enumerate(data['columns'])})
-            index_column = data['columns'][0]  # Assuming the first column can be used as the index
-            df.set_index(index_column, inplace=True)
-            st.line_chart(df)
+            df = pd.DataFrame(data["data"], columns=data["columns"])
+            st.line_chart(df.set_index(data['columns'][0]))
         except (ValueError, KeyError) as e:
             print(f"Error creating line chart: {e}")
             st.write(f"Error creating line chart: {e}")
