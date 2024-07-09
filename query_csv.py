@@ -7,14 +7,18 @@ from langchain_experimental.agents import create_pandas_dataframe_agent
 st.set_page_config(page_title="QUERY CSV")
 st.title("Query csv")
 
-
 st.write("Please enter your OpenAI API key.")
 openai_api_key = st.text_input("OpenAI API Key", type="password")
 
-def csv_tool(filename: str):
+def csv_tool(filename: str, openai_api_key: str):
     df = pd.read_csv(filename)
     print("CSV loaded successfully")
-    return create_pandas_dataframe_agent(OpenAI(api_key=openai_api_key, temperature=0), df, verbose=True)
+    return create_pandas_dataframe_agent(
+        OpenAI(api_key=openai_api_key, temperature=0), 
+        df, 
+        verbose=True, 
+        allow_dangerous_code=True  # This line enables the dangerous code execution
+    )
 
 def ask_agent(agent, query):
     prompt = (
@@ -100,9 +104,6 @@ def write_answer(response_dict: dict):
             print(f"Error creating table: {e}")
             st.write(f"Error creating table: {e}")
 
-
-
-
 st.write("Please upload your CSV file below.")
 data = st.file_uploader("Upload a CSV", type="csv")
 query = st.text_area("Send a Message")
@@ -110,7 +111,7 @@ query = st.text_area("Send a Message")
 if st.button("Submit Query", type="primary"):
     if data is not None:
         # Create an agent from the CSV file.
-        agent = csv_tool(data)
+        agent = csv_tool(data, openai_api_key)
         # Query the agent.
         response = ask_agent(agent=agent, query=query)
         # Decode the response.
