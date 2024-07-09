@@ -1,6 +1,8 @@
 import pandas as pd
 import streamlit as st
 import json
+import os
+from tempfile import NamedTemporaryFile
 from langchain import OpenAI
 from langchain_experimental.agents import create_pandas_dataframe_agent
 
@@ -102,16 +104,24 @@ query = st.text_area("Send a Message")
 
 if st.button("Submit Query", type="primary"):
     if data is not None:
-        # Save the uploaded CSV file to a path
-        with open("/mnt/data/uploaded_file.csv", "wb") as f:
-            f.write(data.getbuffer())
+        # Save the uploaded CSV file to a temporary file
+        with NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
+            tmp.write(data.getbuffer())
+            tmp_path = tmp.name
+        
         # Create an agent from the CSV file.
-        agent = csv_tool("/mnt/data/uploaded_file.csv", openai_api_key)
+        agent = csv_tool(tmp_path, openai_api_key)
+        
         # Query the agent.
         response = ask_agent(agent=agent, query=query)
+        
         # Decode the response.
         decoded_response = decode_response(response)
+        
         # Write the response to the Streamlit app.
         write_answer(decoded_response)
+        
+        # Clean up the temporary file
+        os.remove(tmp_path)
     else:
         st.write("Please upload a CSV file.")
